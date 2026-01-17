@@ -1,11 +1,12 @@
 import java.util.HashMap;
 
-int WORLD_SEED = 69;
+int WORLD_SEED = 67;
+//69
 
 final int TILE = 48;
 final int CHUNK_W = 160;
 final int CHUNK_H = 160;
-final int SKY_LIGHT = 455;
+final int SKY_LIGHT = 255;
 
 HashMap<String, PGraphics> chunkImages = new HashMap<String, PGraphics>();
 
@@ -23,6 +24,9 @@ final int BUSH = 9;
 final int GRASS_LEAVES = 10;
 final int LEAVES = 11;
 final int WOOD = 12;
+final int PLANKS = 13;
+final int CRAFTING_TABLE = 14;
+final int CHEST = 15;
 
 // Current active chunk
 int currentChunkX = 0;
@@ -32,7 +36,7 @@ int[][] currentTiles;
 int blockLight = 340;
 int verticalReach = 55;
 int decay = 800;
-int blockDecay = 20;
+int blockDecay = 10;
 int blockDiffuseSteps = 32;
 
 int[][] lightMap = new int[CHUNK_W][CHUNK_H];
@@ -52,6 +56,13 @@ PImage bushTex;
 PImage grassLeavesTex;
 PImage leavesTex;
 PImage woodTex;
+PImage planksTex;
+PImage craftingTableTex;
+PImage chestTex;
+
+PImage chestGuiTex;
+PImage craftingGuiTex;
+
 
 float px = TILE * 4;
 float py = TILE * 8;
@@ -67,15 +78,67 @@ float jumpVel = -15;
 float halfW = 15;
 float halfH = 20;
 
-boolean leftPressed  = false;
+boolean leftPressed = false;
 boolean rightPressed = false;
 boolean upPressed = false;
+boolean downPressed = false;
 
 // Block interaction
 float blockRange = 250; //player reach
 int selTileX = -1;
 int selTileY = -1;
 boolean tileVisible = false;
+
+// Hotbar
+final int HOTBAR_SLOTS = 9;
+int[] hotbar = new int[HOTBAR_SLOTS];
+int selectedSlot = 0;
+
+// GUI
+PImage hotbarTex;
+PImage slotTex;
+
+float prevPy;
+
+final int SLOT_SIZE = 80;
+
+// Inventory
+boolean inventoryOpen = false;
+
+final int INV_COLS = 9;
+final int INV_ROWS = 3; // 3 inventory
+
+int[][] inventory = new int[INV_ROWS][INV_COLS];
+PImage inventoryTex;
+
+// Dragging
+int draggingItem = AIR;
+boolean isDragging = false;
+
+final float INV_SLOT_OFFSET_X = 0;
+final float INV_SLOT_OFFSET_Y = 150;
+
+final float CHEST_SLOT_OFFSET_X = 0;
+final float CHEST_SLOT_OFFSET_Y = -130;
+
+
+final int MAX_STACK = 64;
+
+int[] hotbarCount = new int[HOTBAR_SLOTS];
+int[][] inventoryCount = new int[INV_ROWS][INV_COLS];
+
+int draggingCount = 0;
+
+final int GRASS_TICK_INTERVAL = 1; // frames between grass updates
+int grassTickCounter = 0;
+
+ArrayList<ItemEntity> droppedItems = new ArrayList<ItemEntity>();
+HashMap<String, ChestEntity> chestEntities = new HashMap<String, ChestEntity>();
+ChestEntity openChest = null;
+boolean chestOpen = false;
+
+boolean inventorySlotsOnly = false;
+
 
 void setup() {
   noiseSeed(WORLD_SEED);
@@ -96,6 +159,18 @@ void setup() {
   grassLeavesTex  = loadImage("grass leaves.png");
   leavesTex = loadImage("leaves.png");
   woodTex = loadImage("wood.png");
+  
+  planksTex = loadImage("planks.png");
+  craftingTableTex = loadImage("crafting table.png");
+  chestTex = loadImage("chest.png");
+  
+  chestGuiTex = loadImage("chest gui.png");
+  craftingGuiTex = loadImage("crafting table gui.png");
+  
+  planksTex.resize(TILE, TILE);
+  craftingTableTex.resize(TILE, TILE);
+  chestTex.resize(TILE, TILE);
+
   
   bushTex.resize(TILE, TILE);
   grassLeavesTex.resize(TILE, TILE);
@@ -118,6 +193,41 @@ void setup() {
   computeLighting();
 
   snapPlayerToGround();
+  
+  hotbarTex = loadImage("gui_hotbar.png");
+  slotTex = loadImage("gui_slot.png");
+  
+  // Fill hotbar with first 9 block IDs
+  int[] defaultBlocks = {
+    GRASS, DIRT, STONE, COBBLESTONE,
+    COAL_ORE, CHEST, CRAFTING_TABLE,
+    PLANKS, WOOD
+  };
+  
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    hotbar[i] = defaultBlocks[i];
+  }
+ 
+  
+  // Fill rest with AIR
+  for (int y = 0; y < INV_ROWS - 1; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+      inventory[y][x] = AIR;
+    }
+  }
+  inventoryTex = loadImage("inventory.png");
+  
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    hotbar[i] = defaultBlocks[i];
+    hotbarCount[i] = MAX_STACK;
+  }
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+      inventoryCount[y][x] = 0;
+    }
+  }
+
+
 }
 
 void draw() {
@@ -127,24 +237,152 @@ void draw() {
   updateBlockSystem();
 
   pushMatrix();
-  applyCamera(); 
-  renderPlayer();
+  applyCamera();
+
   renderWorld();
+  renderPlayer();
+  renderTransparentBlocks();
   renderBlockSystem();
-  noStroke();
+  
+  for (int i = droppedItems.size()-1; i >= 0; i--) {
+    ItemEntity it = droppedItems.get(i);
+    it.update();
+    it.render();
+    if (!it.alive) droppedItems.remove(i);
+  }
+
+
   popMatrix();
+  if (chestOpen) {
+    renderChest();
+    renderInventorySlots(width/2, height/2);
+  }
+  else if (inventoryOpen) {
+    renderInventoryBackground();
+    renderInventorySlots(width/2, height/2);
+  }
+
+  renderHotbar();
+  renderDraggedItem();
+}
+
+void renderHotbar() {
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  float cx = width / 2;
+  float cy = height - 40;
+
+  image(hotbarTex, cx, cy);
+
+  float startX = cx - (HOTBAR_SLOTS - 1) * SLOT_SIZE / 2;
+
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    float x = startX + i * SLOT_SIZE;
+
+    if (i == selectedSlot) {
+      image(slotTex, x, cy);
+    }
+
+    int id = hotbar[i];
+    if (id != AIR) {
+      PImage tex = getBlockTexture(id);
+      if (tex != null) {
+        image(tex, x, cy, 32, 32);
+      }
+    }
+    if (hotbarCount[i] > 1) {
+      fill(255);
+      textAlign(RIGHT, BOTTOM);
+      textSize(14);
+      text(hotbarCount[i], x + SLOT_SIZE/2 - 6, cy + SLOT_SIZE/2 - 6);
+    }
+  }
 }
 
 void keyPressed() {
-  if (key == 'a') leftPressed  = true;
-  if (key == 'd') rightPressed = true;
-  if (key == 'w') upPressed    = true;
+
+  if (key == 'e' || key == 'E') {
+  
+    if (chestOpen) {
+      chestOpen = false;
+      openChest = null;
+      inventoryOpen = false;
+      return;
+    }
+  
+    inventoryOpen = !inventoryOpen;
+    return;
+  }
+
+  if (key == 'q' || key == 'Q') {
+    int slot = selectedSlot;
+    if (hotbar[slot] != AIR && hotbarCount[slot] > 0) {
+  
+      float camX = px - width/2;
+      float camY = py - height/2;
+      camX = constrain(camX, 0, CHUNK_W*TILE - width);
+      camY = constrain(camY, 0, CHUNK_H*TILE - height);
+  
+      float worldMouseX = mouseX + camX;
+      float worldMouseY = mouseY + camY;
+  
+      float dx = worldMouseX - px;
+      float dy = worldMouseY - py;
+      float len = sqrt(dx*dx + dy*dy);
+      if (len == 0) len = 1;
+  
+      dx /= len;
+      dy /= len;
+  
+      ItemEntity it = new ItemEntity(
+        px,
+        py,
+        hotbar[slot],
+        1,
+        true
+      );
+  
+      float throwSpeed = 8.5;
+      it.vx = dx * throwSpeed;
+      it.vy = dy * throwSpeed - 2.5; // slight upward bias
+  
+      it.pickupDelay = 40;
+      droppedItems.add(it);
+  
+      hotbarCount[slot]--;
+      if (hotbarCount[slot] <= 0) {
+        hotbar[slot] = AIR;
+        hotbarCount[slot] = 0;
+      }
+    }
+    return;
+  }
+
+  // Hotbar selection
+  if (key >= '1' && key <= '9') {
+    selectedSlot = key - '1';
+  }
+
+  if (inventoryOpen) return;
+
+  // Movement
+  if (key == 'a' || key == 'A') leftPressed = true;
+  if (key == 'd' || key == 'D') rightPressed = true;
+  if (key == 'w' || key == 'W') upPressed = true;
+  if (key == 's' || key == 'S') downPressed = true;
 }
 
 void keyReleased() {
-  if (key == 'a') leftPressed  = false;
-  if (key == 'd') rightPressed = false;
-  if (key == 'w') upPressed    = false;
+  if (key == 'a' || key == 'A') leftPressed = false;
+  if (key == 'd' || key == 'D') rightPressed = false;
+  if (key == 'w' || key == 'W') upPressed = false;
+  if (key == 's' || key == 'S') downPressed = false;
+}
+
+boolean isPlatformTile(int x, int y) {
+  int id = currentTiles[x][y];
+  return id == WOOD || id == LEAVES || id == CHEST || id == CRAFTING_TABLE;
 }
 
 void applyCamera() {
@@ -158,6 +396,13 @@ void applyCamera() {
 }
 
 void updatePlayer() {
+  if (inventoryOpen) {
+    vx = 0;
+    return;
+  }
+
+  prevPy = py;
+
   float skin = 0.1;
 
   if (leftPressed)  vx -= moveAccel;
@@ -170,7 +415,6 @@ void updatePlayer() {
   vy += gravity;
   vy = min(vy, 40);
 
-  // 1) HORIZONTAL MOVEMENT
   float newPx = px + vx;
 
   float left   = newPx - halfW + skin;
@@ -183,70 +427,104 @@ void updatePlayer() {
   int tileLeft   = floor(left / TILE);
   int tileRight  = floor(right / TILE);
 
-  if (vx > 0) {  // right
+  if (vx > 0) {
     for (int ty = tileTop; ty <= tileBottom; ty++) {
-      if (isSolidTile(tileRight, ty)) {
+      if (isSolidTile(tileRight, ty) && !isPlatformTile(tileRight, ty)) {
         newPx = tileRight * TILE - halfW;
         vx = 0;
-        break;
       }
     }
-  } else if (vx < 0) { // left
+  } 
+  else if (vx < 0) {
     for (int ty = tileTop; ty <= tileBottom; ty++) {
-      if (isSolidTile(tileLeft, ty)) {
+      if (isSolidTile(tileLeft, ty) && !isPlatformTile(tileLeft, ty)) {
         newPx = (tileLeft + 1) * TILE + halfW;
         vx = 0;
-        break;
       }
     }
   }
 
   px = newPx;
 
-  // 2) VERTICAL MOVEMENT
   float newPy = py + vy;
 
-  float vLeft = px - halfW + skin;
-  float vRight = px + halfW - skin;
-  float vTop = newPy - halfH + skin;
+  float vLeft   = px - halfW + skin;
+  float vRight  = px + halfW - skin;
+  float vTop    = newPy - halfH + skin;
   float vBottom = newPy + halfH - skin;
 
-  int vTileLeft = floor(vLeft / TILE);
-  int vTileRight = floor(vRight / TILE);
-  int vTileTop = floor(vTop / TILE);
+  int vTileLeft   = floor(vLeft / TILE);
+  int vTileRight  = floor(vRight / TILE);
+  int vTileTop    = floor(vTop / TILE);
   int vTileBottom = floor(vBottom / TILE);
 
   boolean onGround = false;
 
-  if (vy > 0) { // FALLING
+  // falling
+  if (vy > 0) {
     for (int tx = vTileLeft; tx <= vTileRight; tx++) {
-      if (isSolidTile(tx, vTileBottom)) {
-        float blockTop = vTileBottom * TILE;
+
+      int ty = vTileBottom;
+      if (tx < 0 || tx >= CHUNK_W || ty < 0 || ty >= CHUNK_H) continue;
+
+      boolean solid = isSolidTile(tx, ty);
+      boolean platform = isPlatformTile(tx, ty);
+
+      float blockTop = ty * TILE;
+
+      float prevBottom = prevPy + halfH;
+      float currBottom = newPy + halfH;
+
+      // SOLID NON-PLATFORM BLOCKS
+      if (solid && !platform) {
         newPy = blockTop - halfH;
         vy = 0;
         onGround = true;
         break;
       }
+
+      // PLATFORM (AND SOLID+PLATFORM) BLOCKS
+      if (platform && !downPressed) {
+        if (prevBottom <= blockTop && currBottom >= blockTop) {
+          newPy = blockTop - halfH;
+          vy = 0;
+          onGround = true;
+          break;
+        }
+      }
     }
-  } else if (vy < 0) { // JUMPING UP
+  }
+
+  // jump
+  else if (vy < 0) {
     for (int tx = vTileLeft; tx <= vTileRight; tx++) {
-      if (isSolidTile(tx, vTileTop)) {
-        float blockBottom = (vTileTop + 1) * TILE;
-        newPy = blockBottom + halfH;
-        vy = 0;
-        break;
+  
+      int ty = vTileTop;
+      if (tx < 0 || tx >= CHUNK_W || ty < 0 || ty >= CHUNK_H) continue;
+  
+      // Only collide with true solid blocks (not platforms)
+      if (isSolidTile(tx, ty) && !isPlatformTile(tx, ty)) {
+  
+        float blockBottom = (ty + 1) * TILE;
+  
+        float prevTop = prevPy - halfH;
+        float currTop = newPy - halfH;
+  
+        // swept collision check (same strength as bottom)
+        if (prevTop >= blockBottom && currTop <= blockBottom) {
+          newPy = blockBottom + halfH;
+          vy = 0;
+          break;
+        }
       }
     }
   }
 
   py = newPy;
-
-  // 3) JUMPING
   if (upPressed && onGround) {
     vy = jumpVel;
   }
 
-  // 4) CHUNK CHANGE
   handleChunkChange();
 }
 
@@ -282,6 +560,11 @@ void handleChunkChange() {
     currentChunkY = newChunkY;
     currentTiles = loadChunk(currentChunkX, currentChunkY);
     computeLighting();
+  
+    // re-snap dropped items to terrain
+  for (ItemEntity it : droppedItems) {
+    it.resolveGroundSnap();
+  }
   }
 }
 
@@ -304,7 +587,8 @@ void snapPlayerToGround() {
         if (airAbove) {
           if (bestSurfaceY == -1 || ty < bestSurfaceY) {
             bestSurfaceY = ty;
-          }}
+          }
+        }
         break;
       }
     }
@@ -335,7 +619,11 @@ boolean isSolidTile(int tileX, int tileY) {
           id == COAL_ORE ||
           id == IRON_ORE ||
           id == GOLD_ORE ||
-          id == DIAMOND_ORE);
+          id == DIAMOND_ORE ||
+          id == PLANKS ||
+          id == CRAFTING_TABLE ||
+          id == CHEST);
+
 }
 
 void computeLighting() {
@@ -353,7 +641,9 @@ void computeLighting() {
 
       if (!blocked) {
         lightMap[x][y] = SKY_LIGHT;
-        if (isSolidTile(x, y)) blocked = true;
+        if (isSolidTile(x, y) && currentTiles[x][y] != LEAVES && currentTiles[x][y] != GRASS_LEAVES)
+          blocked = true;
+
       } else {
         lightMap[x][y] = 0;
       }
@@ -408,33 +698,32 @@ void applyBlockLightsDiffuse() {
   }
 }
 
-
-
 void diffuseSkyLight(int iterations) {
+
   for (int it = 0; it < iterations; it++) {
 
     for (int x = 1; x < CHUNK_W - 1; x++) {
       for (int y = 1; y < CHUNK_H - 1; y++) {
 
-        // only spread through air
-        if (currentTiles[x][y] != AIR) continue;
+        // skylight spreads through air & foliage
+        if (isSolidTile(x, y)) continue;
 
-        int best = 0;
-        best = max(best, lightMap[x+1][y]);
-        best = max(best, lightMap[x-1][y]);
-        best = max(best, lightMap[x][y+1]);
-        best = max(best, lightMap[x][y-1]);
+        int here = lightMap[x][y];
 
-        int newL = max(0, best - 10);
+        int horiz = max(lightMap[x-1][y], lightMap[x+1][y]);
+        int vert  = max(lightMap[x][y-1], lightMap[x][y+1]);
 
-        if (newL > lightMap[x][y]) {
-          lightMap[x][y] = newL;
+        // horizontal spreads farther than vertical
+        int candidate = max(horiz - 4, vert - 12);
+
+        if (candidate > here) {
+          lightMap[x][y] = candidate;
         }
       }
     }
-
   }
 }
+
 
 void applyBlockLightsNatural() {
 
@@ -545,6 +834,7 @@ boolean hasLineOfSight(int x0, int y0, int x1, int y1) {
         return (solidCount <= 2);
       }
 
+      // For all intermediate tiles, check for blocking
       if (isSolidTile(cx, cy)) {
         solidCount++;
         if (solidCount > 2) return false;   // block after 2 solids
@@ -600,7 +890,6 @@ void enforceBlackout() {
 
       int L = lightMap[x][y];
 
-      // Pure black only if it's a solid tile
       if (L < 30) {
         if (currentTiles[x][y] != AIR) {
           lightMap[x][y] = 0;
@@ -625,8 +914,7 @@ void blurUndergroundLighting() {
       }
 
 
-      int sum =
-        lightMap[x][y] +
+      int sum = lightMap[x][y] +
         lightMap[x-1][y] + lightMap[x+1][y] +
         lightMap[x][y-1] + lightMap[x][y+1];
 
@@ -684,6 +972,34 @@ void drawLit(PImage tex, float x, float y, int light) {
   rect(x, y, TILE+1, TILE+1);
 }
 
+void renderTransparentBlocks() {
+  rectMode(CORNER);
+  imageMode(CORNER);
+
+  for (int tx = 0; tx < CHUNK_W; tx++) {
+    for (int ty = 0; ty < CHUNK_H; ty++) {
+
+      int id = currentTiles[tx][ty];
+      if (!isTransparentBlock(id)) continue;
+
+      float wx = tx * TILE;
+      float wy = ty * TILE;
+      int L = lightMap[tx][ty];
+
+      if (id == AIR) {
+        drawAirDarkness(wx, wy, L);
+        continue;
+      }
+
+      PImage tex = getBlockTexture(id);
+      if (tex != null) {
+        drawLit(tex, wx, wy, L);
+      }
+    }
+  }
+}
+
+
 
 // WORLD RENDERING
 void renderWorld() {
@@ -698,27 +1014,27 @@ void renderWorld() {
       float wy = ty * TILE;
       int L = lightMap[tx][ty];
 
-      // AIR
-      if (id == AIR) {
-        drawAirDarkness(wx, wy, L);
-        continue;
-      }
+      // Transparent blocks are drawn later
+      if (isTransparentBlock(id)) continue;
 
       // ALL OTHER BLOCKS
       switch (id) {
-        case GRASS:       drawLit(grassTex, wx, wy, L); break;
-        case DIRT:        drawLit(dirtTex, wx, wy, L); break;
-        case STONE:       drawLit(stoneTex, wx, wy, L); break;
+        case GRASS: drawLit(grassTex, wx, wy, L); break;
+        case DIRT: drawLit(dirtTex, wx, wy, L); break;
+        case STONE: drawLit(stoneTex, wx, wy, L); break;
         case COBBLESTONE: drawLit(cobblestoneTex, wx, wy, L); break;
-        case BEDROCK:     drawLit(bedrockTex, wx, wy, L); break;
-        case COAL_ORE:    drawLit(coal_oreTex, wx, wy, L); break;
-        case IRON_ORE:    drawLit(iron_oreTex, wx, wy, L); break;
-        case GOLD_ORE:    drawLit(gold_oreTex, wx, wy, L); break;
+        case BEDROCK: drawLit(bedrockTex, wx, wy, L); break;
+        case COAL_ORE: drawLit(coal_oreTex, wx, wy, L); break;
+        case IRON_ORE: drawLit(iron_oreTex, wx, wy, L); break;
+        case GOLD_ORE: drawLit(gold_oreTex, wx, wy, L); break;
         case DIAMOND_ORE: drawLit(diamond_oreTex, wx, wy, L); break;
-        case BUSH:         drawLit(bushTex, wx, wy, L); break;
+        case BUSH: drawLit(bushTex, wx, wy, L); break;
         case GRASS_LEAVES: drawLit(grassLeavesTex, wx, wy, L); break;
-        case LEAVES:       drawLit(leavesTex, wx, wy, L); break;
-        case WOOD:         drawLit(woodTex, wx, wy, L); break;
+        case LEAVES: drawLit(leavesTex, wx, wy, L); break;
+        case WOOD: drawLit(woodTex, wx, wy, L); break;
+        case PLANKS: drawLit(planksTex, wx, wy, L); break;
+        case CRAFTING_TABLE: drawLit(craftingTableTex, wx, wy, L); break;
+        case CHEST: drawLit(chestTex, wx, wy, L); break;
       }
     }
   }
@@ -824,7 +1140,7 @@ int[][] generateChunk(int cx, int cy) {
         float threshold = 0.82 - depthFactor * 0.45;
 
         if (blend > threshold) tiles[x][localY] = STONE;
-        else                   tiles[x][localY] = DIRT;
+        else tiles[x][localY] = DIRT;
 
       } else {
         tiles[x][localY] = STONE;
@@ -857,54 +1173,52 @@ int[][] generateChunk(int cx, int cy) {
     }
   }
   
-  // 2.6 TREES (bad rn)
+  // 2.6 TREES
   for (int x = 3; x < CHUNK_W - 3; x++) {
   
     int surfY = surface[x];
     if (tiles[x][surfY] != GRASS) continue;
   
     float worldX = cx * CHUNK_W + x;
-  
     float treeNoise = noise(worldX * 0.06, (surfY + WORLD_SEED) * 0.06);
+    if (treeNoise < 0.55) continue;
   
-    if (treeNoise < 0.75) continue;
-  
+    // Prevent overlap
     boolean spaceClear = true;
-    for (int dx = -2; dx <= 2; dx++) {
+    for (int dx = -3; dx <= 3; dx++) {
       if (tiles[x + dx][surfY - 1] == WOOD) {
         spaceClear = false;
         break;
       }
-    }
-    if (!spaceClear) continue;
-  
-    int trunkHeight = 4 + int(noise(worldX * 0.2) * 3);
-  
-    // Trunk
-    for (int h = 1; h <= trunkHeight; h++) {
-      int ty = surfY - h;
-      if (ty < 0) break;
-      tiles[x][ty] = WOOD;
-    }
-  
-    // Leaves canopy
-    int top = surfY - trunkHeight;
-    for (int dx = -3; dx <= 3; dx++) {
-      for (int dy = -3; dy <= 3; dy++) {
-  
-        int lx = x + dx;
-        int ly = top + dy;
-  
-        if (lx < 1 || lx >= CHUNK_W - 1 || ly < 1 || ly >= CHUNK_H - 1)
-          continue;
-  
-        float d = sqrt(dx*dx + dy*dy);
-        if (d <= 3.0 && tiles[lx][ly] == AIR) {
-          tiles[lx][ly] = LEAVES;
-        }
-      }
-    }
   }
+  if (!spaceClear) continue;
+        tiles[x][surfY] = DIRT;
+
+  for (int h = 1; h <= 4; h++) {
+    int ty = surfY - h;
+    if (ty < 0) break;
+    tiles[x][ty] = WOOD;
+  }
+
+  int top = surfY - 4;
+
+  // leaves
+  // Layer 1
+  for (int dx = -2; dx <= 2; dx++) {
+    if (tiles[x + dx][top - 1] == AIR)
+      tiles[x + dx][top - 1] = LEAVES;
+  }
+
+  // Layer 2
+  for (int dx = -1; dx <= 1; dx++) {
+    if (tiles[x + dx][top - 2] == AIR)
+      tiles[x + dx][top - 2] = LEAVES;
+  }
+
+  // Layer 3
+  if (tiles[x][top - 3] == AIR)
+    tiles[x][top - 3] = LEAVES;
+}
 
   // 3. BEDROCK
   if (cy == 0) {
@@ -928,7 +1242,7 @@ int[][] generateChunk(int cx, int cy) {
       float f2 = noise((x + WORLD_SEED*11) * 0.10, (y + WORLD_SEED*21) * 0.10);
       float f3 = noise((x + WORLD_SEED*51) * 0.20, (y + WORLD_SEED*61) * 0.20);
 
-      float value = f1 * 0.50 + f2 * 0.33 + f3 * 0.17;
+      float value = f1 * 0.60 + f2 * 0.33 + f3 * 0.17;
 
       if (value > 0.58) caveMask[x][y] = true;
     }
@@ -939,8 +1253,12 @@ int[][] generateChunk(int cx, int cy) {
     for (int y = 2; y < CHUNK_H - 2; y++) {
       if (!caveMask[x][y]) continue;
 
-      // If dirt is above → cancel this cave (force stone)
-      if (tiles[x][y-1] == DIRT || tiles[x][y-2] == DIRT) {
+      // If dirt is above cancel the cave
+      if (tiles[x][y-1] == DIRT || tiles[x][y-2] == DIRT || tiles[x][y-3] == DIRT) {
+        caveMask[x][y] = false;
+        continue;
+      }
+      if (tiles[x][y-1] == GRASS || tiles[x][y-2] == GRASS || tiles[x][y-3] == GRASS) {
         caveMask[x][y] = false;
         continue;
       }
@@ -1051,13 +1369,35 @@ int[][] generateChunk(int cx, int cy) {
 
 
 // BLOCK INTERACTION SYSTEM
-void updateBlockSystem() {
-  updateBlockSelection();
-}
 
 void renderBlockSystem() {
+  renderBlockPreview();
   renderSelectedTile();
 }
+
+PImage getBlockTexture(int id) {
+  switch (id) {
+    case GRASS: return grassTex;
+    case DIRT: return dirtTex;
+    case STONE: return stoneTex;
+    case COBBLESTONE: return cobblestoneTex;
+    case BEDROCK: return bedrockTex;
+    case COAL_ORE: return coal_oreTex;
+    case IRON_ORE: return iron_oreTex;
+    case GOLD_ORE: return gold_oreTex;
+    case DIAMOND_ORE: return diamond_oreTex;
+    case BUSH: return bushTex;
+    case GRASS_LEAVES: return grassLeavesTex;
+    case LEAVES: return leavesTex;
+    case WOOD: return woodTex;
+    case PLANKS: return planksTex;
+    case CRAFTING_TABLE: return craftingTableTex;
+    case CHEST: return chestTex;
+
+  }
+  return null;
+}
+
 
 // BLOCK SELECTION
 void updateBlockSelection() {
@@ -1088,8 +1428,8 @@ void updateBlockSelection() {
 
   float startX = px;
   float startY = py;
-  float endX   = targetTileX*TILE + TILE/2;
-  float endY   = targetTileY*TILE + TILE/2;
+  float endX = targetTileX*TILE + TILE/2;
+  float endY = targetTileY*TILE + TILE/2;
 
   int steps = int(max(abs(endX - startX), abs(endY - startY)) / 6);
   if (steps < 1) steps = 1;
@@ -1137,28 +1477,151 @@ void renderSelectedTile() {
 
 // BLOCK CLICK HANDLING
 void mousePressed() {
+
+  if (chestOpen) {
+    handleChestMouse();      // chest slots
+    handleInventoryMouse();  // inventory + hotbar
+    return;
+  }
+
+  if (inventoryOpen) {
+    handleInventoryMouse();
+    return;
+  }
+
   if (!tileVisible) return;
+
 
   boolean changed = false;
 
-  if (mouseButton == LEFT) {
-    if (isBreakableTile(selTileX, selTileY)) 
-      currentTiles[selTileX][selTileY] = AIR;
-      changed = true;
-    }
+  int tx = selTileX;
+  int ty = selTileY;
+  int id = currentTiles[tx][ty];
 
   if (mouseButton == RIGHT) {
-    if (isInsidePlayer(selTileX, selTileY)) return;
 
-    if (!isSolidTile(selTileX, selTileY)) {
-      currentTiles[selTileX][selTileY] = COBBLESTONE;
+    // open chest
+    if (id == CHEST) {
+      int wx = currentChunkX * CHUNK_W + tx;
+      int wy = currentChunkY * CHUNK_H + ty;
+
+      String key = chestKeyFromWorld(wx, wy);
+      openChest = chestEntities.get(key);
+
+      if (openChest != null) {
+        chestOpen = true;
+        inventoryOpen = false;
+      }
+      return;
+    }
+
+    // place block
+    if (isInsidePlayer(tx, ty)) return;
+
+    int slot = selectedSlot;
+
+    if (hotbar[slot] != AIR &&
+        hotbarCount[slot] > 0 &&
+        isReplaceableBlock(id)) {
+
+      int placeId = hotbar[slot];
+
+      currentTiles[tx][ty] = placeId;
+      invalidateFoliageAbove(tx, ty);
+      hotbarCount[slot]--;
+
+      // create chest entity
+      if (placeId == CHEST) {
+        int wx = currentChunkX * CHUNK_W + tx;
+        int wy = currentChunkY * CHUNK_H + ty;
+        String key = chestKeyFromWorld(wx, wy);
+        chestEntities.put(key, new ChestEntity(wx, wy));
+      }
+
+      if (hotbarCount[slot] <= 0) {
+        hotbar[slot] = AIR;
+        hotbarCount[slot] = 0;
+      }
+
       changed = true;
     }
   }
+  // break block
+  else if (mouseButton == LEFT) {
 
+    if (!isBreakableTile(tx, ty)) return;
+
+    // remove chest enity
+    if (id == CHEST) {
+      int wx = currentChunkX * CHUNK_W + tx;
+      int wy = currentChunkY * CHUNK_H + ty;
+      String key = chestKeyFromWorld(wx, wy);
+    
+      ChestEntity chest = chestEntities.get(key);
+      if (chest != null) {
+    
+        // Drop all stored items
+        for (int i = 0; i < ChestEntity.SIZE; i++) {
+          int item = chest.items[i];
+          int count = chest.counts[i];
+    
+          if (item != AIR && count > 0) {
+            spawnItemDrop(tx, ty, item, count, false);
+          }
+        }
+    
+        // Remove chest entity
+        chestEntities.remove(key);
+      }
+    }
+
+    // drop item
+    if (id != AIR) {
+      spawnItemDrop(tx, ty, id, 1);
+    }
+
+    currentTiles[tx][ty] = AIR;
+    invalidateFoliageAbove(tx, ty);
+    changed = true;
+  }
+  // block light update
   if (changed) {
     computeLighting();
   }
+}
+
+
+
+void renderBlockPreview() {
+  if (!tileVisible) return;
+  if (isSolidTile(selTileX, selTileY)) return;
+
+  int id = hotbar[selectedSlot];
+  if (id == AIR) return;
+
+  PImage tex = getBlockTexture(id);
+  if (tex == null) return;
+
+  tint(255, 120);
+  image(tex, selTileX * TILE, selTileY * TILE);
+  noTint();
+}
+
+void spawnItemDrop(int tx, int ty, int id, int count) {
+  spawnItemDrop(tx, ty, id, count, true);
+}
+
+void spawnItemDrop(int tx, int ty, int id, int count, boolean instantPickup) {
+  float x = tx * TILE + TILE/2;
+  float y = ty * TILE + TILE/2;
+  droppedItems.add(new ItemEntity(x, y, id, count, instantPickup));
+}
+
+boolean isTransparentBlock(int id) {
+  return id == AIR ||
+         id == BUSH ||
+         id == GRASS_LEAVES ||
+         id == LEAVES;
 }
 
 boolean isBreakableTile(int tx, int ty) {
@@ -1170,8 +1633,227 @@ boolean isBreakableTile(int tx, int ty) {
   return id != AIR;
 }
 
+void renderInventory() {
+  imageMode(CENTER);
+  rectMode(CENTER);
 
-// PLAYER HITBOX CHECK
+  float cx = width / 2;
+  float cy = height / 2;
+
+  image(inventoryTex, cx, cy);
+
+  float slotSize = SLOT_SIZE;
+  float startX = cx - (INV_COLS - 1) * slotSize / 2 + INV_SLOT_OFFSET_X;
+  float startY = cy - (INV_ROWS - 1) * slotSize / 2 + INV_SLOT_OFFSET_Y;
+
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+
+      float sx = startX + x * slotSize;
+      float sy = startY + y * slotSize;
+
+      int id = inventory[y][x];
+      if (id != AIR) {
+        PImage tex = getBlockTexture(id);
+        if (tex != null) {
+          image(tex, sx, sy, 32, 32);
+        }
+      }
+      if (inventoryCount[y][x] > 1) {
+        fill(255);
+        textAlign(RIGHT, BOTTOM);
+        textSize(14);
+        text(inventoryCount[y][x], sx + SLOT_SIZE/2 - 6, sy + SLOT_SIZE/2 - 6);
+      }
+    }
+  }
+
+  // Draw dragged item
+  if (isDragging && draggingItem != AIR) {
+    PImage tex = getBlockTexture(draggingItem);
+    if (tex != null) {
+      image(tex, mouseX, mouseY, 32, 32);
+    }
+  }
+  if (isDragging && draggingItem != AIR) {
+    PImage tex = getBlockTexture(draggingItem);
+    if (tex != null) {
+      image(tex, mouseX, mouseY, 32, 32);
+  
+      if (draggingCount > 1) {
+        fill(255);
+        textAlign(RIGHT, BOTTOM);
+        textSize(14);
+        text(draggingCount, mouseX + 16, mouseY + 16);
+      }
+    }
+  }
+}
+
+void handleInventoryMouse() {
+
+  float half = SLOT_SIZE / 2;
+  boolean split = keyPressed && key == ' ';
+
+  // hotbar
+  float hotbarY = height - 40;
+  float hotbarStartX = width / 2 - (HOTBAR_SLOTS - 1) * SLOT_SIZE / 2;
+
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    float sx = hotbarStartX + i * SLOT_SIZE;
+    float sy = hotbarY;
+
+    if (mouseX >= sx - half && mouseX <= sx + half &&
+        mouseY >= sy - half && mouseY <= sy + half) {
+
+      if (!isDragging) {
+        int count = hotbarCount[i];
+        if (hotbar[i] == AIR || count <= 0) return;
+
+        if (split && count > 1) {
+          draggingItem = hotbar[i];
+          draggingCount = (count + 1) / 2;
+          hotbarCount[i] -= draggingCount;
+        } else {
+          draggingItem = hotbar[i];
+          draggingCount = count;
+          hotbar[i] = AIR;
+          hotbarCount[i] = 0;
+        }
+
+        isDragging = true;
+      }
+      else {
+        if (hotbar[i] == AIR) {
+          hotbar[i] = draggingItem;
+          hotbarCount[i] = draggingCount;
+          draggingItem = AIR;
+          draggingCount = 0;
+          isDragging = false;
+        }
+        else if (hotbar[i] == draggingItem) {
+          int space = MAX_STACK - hotbarCount[i];
+          int moved = min(space, draggingCount);
+
+          hotbarCount[i] += moved;
+          draggingCount -= moved;
+
+          if (draggingCount <= 0) {
+            draggingItem = AIR;
+            draggingCount = 0;
+            isDragging = false;
+          }
+        }
+        else {
+          int tempItem = hotbar[i];
+          int tempCount = hotbarCount[i];
+
+          hotbar[i] = draggingItem;
+          hotbarCount[i] = draggingCount;
+
+          draggingItem = tempItem;
+          draggingCount = tempCount;
+        }
+      }
+      return;
+    }
+  }
+
+  float cx = width / 2;
+  float cy = height / 2;
+
+  float startX = cx - (INV_COLS - 1) * SLOT_SIZE / 2 + INV_SLOT_OFFSET_X;
+  float startY = cy - (INV_ROWS - 1) * SLOT_SIZE / 2 + INV_SLOT_OFFSET_Y;
+
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+
+      float sx = startX + x * SLOT_SIZE;
+      float sy = startY + y * SLOT_SIZE;
+
+      if (mouseX >= sx - half && mouseX <= sx + half &&
+          mouseY >= sy - half && mouseY <= sy + half) {
+
+        if (!isDragging) {
+          int count = inventoryCount[y][x];
+          if (inventory[y][x] == AIR || count <= 0) return;
+
+          if (split && count > 1) {
+            draggingItem = inventory[y][x];
+            draggingCount = (count + 1) / 2;
+            inventoryCount[y][x] -= draggingCount;
+          } else {
+            draggingItem = inventory[y][x];
+            draggingCount = count;
+            inventory[y][x] = AIR;
+            inventoryCount[y][x] = 0;
+          }
+
+          isDragging = true;
+        }
+        else {
+          if (inventory[y][x] == AIR) {
+            inventory[y][x] = draggingItem;
+            inventoryCount[y][x] = draggingCount;
+            draggingItem = AIR;
+            draggingCount = 0;
+            isDragging = false;
+          }
+          else if (inventory[y][x] == draggingItem) {
+            int space = MAX_STACK - inventoryCount[y][x];
+            int moved = min(space, draggingCount);
+
+            inventoryCount[y][x] += moved;
+            draggingCount -= moved;
+
+            if (draggingCount <= 0) {
+              draggingItem = AIR;
+              draggingCount = 0;
+              isDragging = false;
+            }
+          }
+          else {
+            int tempItem = inventory[y][x];
+            int tempCount = inventoryCount[y][x];
+
+            inventory[y][x] = draggingItem;
+            inventoryCount[y][x] = draggingCount;
+
+            draggingItem = tempItem;
+            draggingCount = tempCount;
+          }
+        }
+        return;
+      }
+    }
+  }
+  
+  if (!chestOpen && isDragging && draggingItem != AIR) {
+    spawnItemDrop(
+      int(px / TILE),
+      int(py / TILE),
+      draggingItem,
+      draggingCount,
+      false
+    );
+  }
+  
+  if (!chestOpen) {
+    draggingItem = AIR;
+    draggingCount = 0;
+    isDragging = false;
+  }
+
+}
+
+
+boolean isReplaceableBlock(int id) {
+  return id == AIR ||
+         id == LEAVES ||
+         id == GRASS_LEAVES;
+}
+
+// PLAYER-HITBOX CHECK
 boolean isInsidePlayer(int tx, int ty) {
   float blockLeft = tx*TILE;
   float blockRight = blockLeft + TILE;
@@ -1186,4 +1868,318 @@ boolean isInsidePlayer(int tx, int ty) {
   boolean overlap = !(pRight <= blockLeft || pLeft >= blockRight || pBottom <= blockTop || pTop >= blockBottom);
 
   return overlap;
+}
+
+void updateBlockSystem() {
+  updateBlockSelection();
+  updateGrassSystem();
+}
+
+boolean hasNearbyGrass(int x, int y) {
+  for (int dx = -1; dx <= 1; dx++) {
+    for (int dy = -1; dy <= 1; dy++) {
+
+      if (dx == 0 && dy == 0) continue;
+
+      int nx = x + dx;
+      int ny = y + dy;
+
+      if (nx < 0 || nx >= CHUNK_W || ny < 0 || ny >= CHUNK_H) continue;
+
+      if (currentTiles[nx][ny] == GRASS) return true;
+    }
+  }
+  return false;
+}
+
+boolean hasSupportBelow(int x, int y) {
+  if (y >= CHUNK_H - 1) return true;
+
+  int below = currentTiles[x][y + 1];
+
+  if (below == AIR) return false;
+
+  if (below == BUSH || below == GRASS_LEAVES)
+    return false;
+
+  return isSolidTile(x, y + 1);
+}
+
+boolean addItemToInventory(int id, int count) {
+
+  // try hotbar first
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    if (hotbar[i] == id && hotbarCount[i] < MAX_STACK) {
+      int space = MAX_STACK - hotbarCount[i];
+      int moved = min(space, count);
+      hotbarCount[i] += moved;
+      count -= moved;
+      if (count <= 0) return true;
+    }
+  }
+
+  // 2) empty slot
+  for (int i = 0; i < HOTBAR_SLOTS; i++) {
+    if (hotbar[i] == AIR) {
+      hotbar[i] = id;
+      hotbarCount[i] = min(MAX_STACK, count);
+      return true;
+    }
+  }
+
+  // try inventory second
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+      if (inventory[y][x] == id && inventoryCount[y][x] < MAX_STACK) {
+        int space = MAX_STACK - inventoryCount[y][x];
+        int moved = min(space, count);
+        inventoryCount[y][x] += moved;
+        count -= moved;
+        if (count <= 0) return true;
+      }
+    }
+  }
+
+  // empty slot
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+      if (inventory[y][x] == AIR) {
+        inventory[y][x] = id;
+        inventoryCount[y][x] = min(MAX_STACK, count);
+        return true;
+      }
+    }
+  }
+
+  return false; // inventory full
+}
+
+
+void updateGrassSystem() {
+  grassTickCounter++;
+  if (grassTickCounter < GRASS_TICK_INTERVAL) return;
+  grassTickCounter = 0;
+
+  for (int i = 0; i < 60; i++) {
+
+    int x = int(random(CHUNK_W));
+    int y = int(random(CHUNK_H));
+
+    int id = currentTiles[x][y];
+
+    // bushes break if air is under
+    if ((id == GRASS_LEAVES || id == BUSH) && !hasSupportBelow(x, y)) {
+      currentTiles[x][y] = AIR;
+      continue;
+    }
+
+    // grass decay
+    if (id == GRASS) {
+      if (y > 0 && !isReplaceableBlock(currentTiles[x][y - 1])) {
+        currentTiles[x][y] = DIRT;
+      }
+    }
+
+    // grass spread
+    else if (id == DIRT) {
+      if (y <= 0) continue;
+      if (!isReplaceableBlock(currentTiles[x][y - 1])) continue;
+
+      if (hasNearbyGrass(x, y)) {
+        currentTiles[x][y] = GRASS;
+      }
+    }
+  }
+}
+
+String chestKey(int cx, int cy, int tx, int ty) {
+  return cx + "," + cy + ":" + tx + "," + ty;
+}
+
+String chestKeyFromWorld(int worldX, int worldY) {
+  return worldX + "," + worldY;
+}
+
+String chestKeyFromLocal(int cx, int cy, int tx, int ty) {
+  int wx = cx * CHUNK_W + tx;
+  int wy = cy * CHUNK_H + ty;
+  return wx + "," + wy;
+}
+
+void renderChest() {
+  if (!chestOpen || openChest == null) return;
+
+  imageMode(CENTER);
+  rectMode(CENTER);
+
+  float cx = width / 2;
+  float cy = height / 2;
+
+  image(chestGuiTex, cx, cy);
+
+  float startX = cx - (ChestEntity.COLS - 1) * SLOT_SIZE / 2 + CHEST_SLOT_OFFSET_X;
+  float startY = cy - (ChestEntity.ROWS - 1) * SLOT_SIZE / 2 + CHEST_SLOT_OFFSET_Y;
+
+  for (int i = 0; i < ChestEntity.SIZE; i++) {
+
+    int col = i % ChestEntity.COLS;
+    int row = i / ChestEntity.COLS;
+
+    float sx = startX + col * SLOT_SIZE;
+    float sy = startY + row * SLOT_SIZE;
+
+    int id = openChest.items[i];
+    int count = openChest.counts[i];
+
+    if (id != AIR) {
+      PImage tex = getBlockTexture(id);
+      if (tex != null) image(tex, sx, sy, 32, 32);
+    }
+
+    if (count > 1) {
+      fill(255);
+      textAlign(RIGHT, BOTTOM);
+      textSize(14);
+      text(count, sx + SLOT_SIZE/2 - 6, sy + SLOT_SIZE/2 - 6);
+    }
+  }
+}
+
+
+void handleChestMouse() {
+
+  float half = SLOT_SIZE / 2;
+  boolean split = keyPressed && key == ' ';
+
+  float cx = width / 2;
+  float cy = height / 2;
+
+  for (int i = 0; i < ChestEntity.SIZE; i++) {
+
+    float startX = cx - (ChestEntity.COLS - 1) * SLOT_SIZE / 2 + CHEST_SLOT_OFFSET_X;
+    float startY = cy - (ChestEntity.ROWS - 1) * SLOT_SIZE / 2 + CHEST_SLOT_OFFSET_Y;
+    
+    int col = i % ChestEntity.COLS;
+    int row = i / ChestEntity.COLS;
+
+
+    float sx = startX + col * SLOT_SIZE;
+    float sy = startY + row * SLOT_SIZE;
+
+    if (mouseX >= sx - half && mouseX <= sx + half &&
+        mouseY >= sy - half && mouseY <= sy + half) {
+
+      if (!isDragging) {
+        if (openChest.items[i] == AIR || openChest.counts[i] == 0) return;
+
+        if (split && openChest.counts[i] > 1) {
+          draggingItem = openChest.items[i];
+          draggingCount = (openChest.counts[i] + 1) / 2;
+          openChest.counts[i] -= draggingCount;
+        } else {
+          draggingItem = openChest.items[i];
+          draggingCount = openChest.counts[i];
+          openChest.items[i] = AIR;
+          openChest.counts[i] = 0;
+        }
+
+        isDragging = true;
+      }
+      else {
+        if (openChest.items[i] == AIR) {
+          openChest.items[i] = draggingItem;
+          openChest.counts[i] = draggingCount;
+          draggingItem = AIR;
+          draggingCount = 0;
+          isDragging = false;
+        }
+        else if (openChest.items[i] == draggingItem) {
+          int space = MAX_STACK - openChest.counts[i];
+          int moved = min(space, draggingCount);
+
+          openChest.counts[i] += moved;
+          draggingCount -= moved;
+
+          if (draggingCount <= 0) {
+            draggingItem = AIR;
+            draggingCount = 0;
+            isDragging = false;
+          }
+        }
+        else {
+          int tmpItem = openChest.items[i];
+          int tmpCount = openChest.counts[i];
+
+          openChest.items[i] = draggingItem;
+          openChest.counts[i] = draggingCount;
+
+          draggingItem = tmpItem;
+          draggingCount = tmpCount;
+        }
+      }
+      return;
+    }
+  }
+}
+
+void renderInventoryBackground() {
+  imageMode(CENTER);
+  image(inventoryTex, width/2, height/2);
+}
+
+void renderInventorySlots(float baseX, float baseY) {
+
+  float startX = baseX - (INV_COLS - 1) * SLOT_SIZE / 2 + INV_SLOT_OFFSET_X;
+  float startY = baseY - (INV_ROWS - 1) * SLOT_SIZE / 2 + INV_SLOT_OFFSET_Y;
+
+  for (int y = 0; y < INV_ROWS; y++) {
+    for (int x = 0; x < INV_COLS; x++) {
+
+      float sx = startX + x * SLOT_SIZE;
+      float sy = startY + y * SLOT_SIZE;
+
+      int id = inventory[y][x];
+      int count = inventoryCount[y][x];
+
+      if (id != AIR) {
+        PImage tex = getBlockTexture(id);
+        if (tex != null) image(tex, sx, sy, 32, 32);
+      }
+
+      if (count > 1) {
+        fill(255);
+        textAlign(RIGHT, BOTTOM);
+        textSize(14);
+        text(count, sx + SLOT_SIZE/2 - 6, sy + SLOT_SIZE/2 - 6);
+      }
+    }
+  }
+}
+
+void renderDraggedItem() {
+  if (!isDragging || draggingItem == AIR) return;
+
+  PImage tex = getBlockTexture(draggingItem);
+  if (tex != null) {
+    imageMode(CENTER);
+    image(tex, mouseX, mouseY, 32, 32);
+
+    if (draggingCount > 1) {
+      fill(255);
+      textAlign(RIGHT, BOTTOM);
+      textSize(14);
+      text(draggingCount, mouseX + 16, mouseY + 16);
+    }
+  }
+}
+
+void invalidateFoliageAbove(int x, int y) {
+  int aboveY = y - 1;
+  if (aboveY < 0) return;
+
+  int id = currentTiles[x][aboveY];
+
+  if ((id == GRASS_LEAVES || id == BUSH) && !hasSupportBelow(x, aboveY)) {
+    currentTiles[x][aboveY] = AIR;
+  }
 }
