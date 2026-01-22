@@ -937,8 +937,8 @@ int[][] generateChunk(int cx, int cy) {
   float baseHeight = 55;
   float hillAmp = 200;
 
-  float nBig   = 0.0015;
-  float nMed   = 0.01;
+  float nBig = 0.0015;
+  float nMed = 0.01;
   float nSmall = 0.04;
 
   float dirtBase = 3.5;
