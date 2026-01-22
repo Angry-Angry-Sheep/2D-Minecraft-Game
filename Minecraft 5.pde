@@ -1645,9 +1645,9 @@ boolean isInsidePlayer(int tx, int ty) {
   float blockTop = ty*TILE;
   float blockBottom = blockTop + TILE;
 
-  float pLeft   = px - halfW;
-  float pRight  = px + halfW;
-  float pTop    = py - halfH;
+  float pLeft = px - halfW;
+  float pRight = px + halfW;
+  float pTop = py - halfH;
   float pBottom = py + halfH;
 
   boolean overlap = !(pRight <= blockLeft || pLeft >= blockRight || pBottom <= blockTop || pTop >= blockBottom);
