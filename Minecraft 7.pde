@@ -417,15 +417,15 @@ void updatePlayer() {
 
   float newPx = px + vx;
 
-  float left   = newPx - halfW + skin;
-  float right  = newPx + halfW - skin;
-  float top    = py - halfH + skin;
+  float left = newPx - halfW + skin;
+  float right = newPx + halfW - skin;
+  float top = py - halfH + skin;
   float bottom = py + halfH - skin;
 
-  int tileTop    = floor(top / TILE);
+  int tileTop = floor(top / TILE);
   int tileBottom = floor(bottom / TILE);
-  int tileLeft   = floor(left / TILE);
-  int tileRight  = floor(right / TILE);
+  int tileLeft = floor(left / TILE);
+  int tileRight = floor(right / TILE);
 
   if (vx > 0) {
     for (int ty = tileTop; ty <= tileBottom; ty++) {
@@ -448,14 +448,14 @@ void updatePlayer() {
 
   float newPy = py + vy;
 
-  float vLeft   = px - halfW + skin;
-  float vRight  = px + halfW - skin;
-  float vTop    = newPy - halfH + skin;
+  float vLeft = px - halfW + skin;
+  float vRight = px + halfW - skin;
+  float vTop = newPy - halfH + skin;
   float vBottom = newPy + halfH - skin;
 
-  int vTileLeft   = floor(vLeft / TILE);
-  int vTileRight  = floor(vRight / TILE);
-  int vTileTop    = floor(vTop / TILE);
+  int vTileLeft = floor(vLeft / TILE);
+  int vTileRight = floor(vRight / TILE);
+  int vTileTop = floor(vTop / TILE);
   int vTileBottom = floor(vBottom / TILE);
 
   boolean onGround = false;
@@ -1835,9 +1835,9 @@ boolean isInsidePlayer(int tx, int ty) {
   float blockTop = ty*TILE;
   float blockBottom = blockTop + TILE;
 
-  float pLeft   = px - halfW;
-  float pRight  = px + halfW;
-  float pTop    = py - halfH;
+  float pLeft = px - halfW;
+  float pRight = px + halfW;
+  float pTop = py - halfH;
   float pBottom = py + halfH;
 
   boolean overlap = !(pRight <= blockLeft || pLeft >= blockRight || pBottom <= blockTop || pTop >= blockBottom);
