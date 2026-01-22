@@ -291,15 +291,15 @@ void updatePlayer() {
   // 1) HORIZONTAL MOVEMENT
   float newPx = px + vx;
 
-  float left   = newPx - halfW + skin;
-  float right  = newPx + halfW - skin;
-  float top    = py - halfH + skin;
+  float left = newPx - halfW + skin;
+  float right = newPx + halfW - skin;
+  float top = py - halfH + skin;
   float bottom = py + halfH - skin;
 
-  int tileTop    = floor(top / TILE);
+  int tileTop = floor(top / TILE);
   int tileBottom = floor(bottom / TILE);
-  int tileLeft   = floor(left / TILE);
-  int tileRight  = floor(right / TILE);
+  int tileLeft = floor(left / TILE);
+  int tileRight = floor(right / TILE);
 
   if (vx > 0) {  // right
     for (int ty = tileTop; ty <= tileBottom; ty++) {
@@ -879,19 +879,19 @@ void renderWorld() {
 
       // ALL OTHER BLOCKS
       switch (id) {
-        case GRASS:       drawLit(grassTex, wx, wy, L); break;
-        case DIRT:        drawLit(dirtTex, wx, wy, L); break;
-        case STONE:       drawLit(stoneTex, wx, wy, L); break;
+        case GRASS: drawLit(grassTex, wx, wy, L); break;
+        case DIRT: drawLit(dirtTex, wx, wy, L); break;
+        case STONE: drawLit(stoneTex, wx, wy, L); break;
         case COBBLESTONE: drawLit(cobblestoneTex, wx, wy, L); break;
-        case BEDROCK:     drawLit(bedrockTex, wx, wy, L); break;
-        case COAL_ORE:    drawLit(coal_oreTex, wx, wy, L); break;
-        case IRON_ORE:    drawLit(iron_oreTex, wx, wy, L); break;
-        case GOLD_ORE:    drawLit(gold_oreTex, wx, wy, L); break;
+        case BEDROCK: drawLit(bedrockTex, wx, wy, L); break;
+        case COAL_ORE:drawLit(coal_oreTex, wx, wy, L); break;
+        case IRON_ORE: drawLit(iron_oreTex, wx, wy, L); break;
+        case GOLD_ORE: drawLit(gold_oreTex, wx, wy, L); break;
         case DIAMOND_ORE: drawLit(diamond_oreTex, wx, wy, L); break;
-        case BUSH:         drawLit(bushTex, wx, wy, L); break;
+        case BUSH: drawLit(bushTex, wx, wy, L); break;
         case GRASS_LEAVES: drawLit(grassLeavesTex, wx, wy, L); break;
-        case LEAVES:       drawLit(leavesTex, wx, wy, L); break;
-        case WOOD:         drawLit(woodTex, wx, wy, L); break;
+        case LEAVES: drawLit(leavesTex, wx, wy, L); break;
+        case WOOD: drawLit(woodTex, wx, wy, L); break;
       }
     }
   }
@@ -937,8 +937,8 @@ int[][] generateChunk(int cx, int cy) {
   float baseHeight = 55;
   float hillAmp = 200;
 
-  float nBig   = 0.0015;
-  float nMed   = 0.01;
+  float nBig = 0.0015;
+  float nMed = 0.01;
   float nSmall = 0.04;
 
   float dirtBase = 3.5;
