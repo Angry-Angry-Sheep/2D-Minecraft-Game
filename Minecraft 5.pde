@@ -350,14 +350,14 @@ void updatePlayer() {
   // 2) VERTICAL MOVEMENT
   float newPy = py + vy;
 
-  float vLeft   = px - halfW + skin;
-  float vRight  = px + halfW - skin;
-  float vTop    = newPy - halfH + skin;
+  float vLeft = px - halfW + skin;
+  float vRight = px + halfW - skin;
+  float vTop = newPy - halfH + skin;
   float vBottom = newPy + halfH - skin;
 
-  int vTileLeft   = floor(vLeft / TILE);
-  int vTileRight  = floor(vRight / TILE);
-  int vTileTop    = floor(vTop / TILE);
+  int vTileLef = floor(vLeft / TILE);
+  int vTileRight = floor(vRight / TILE);
+  int vTileTop = floor(vTop / TILE);
   int vTileBottom = floor(vBottom / TILE);
 
   boolean onGround = false;
