@@ -1026,8 +1026,8 @@ int[][] generateChunk(int cx, int cy) {
   float baseHeight = 55;
   float hillAmp = 200;
 
-  float nBig   = 0.0015;
-  float nMed   = 0.01;
+  float nBig = 0.0015;
+  float nMed = 0.01;
   float nSmall = 0.04;
 
   float dirtBase = 3.5;
@@ -1736,9 +1736,9 @@ boolean isInsidePlayer(int tx, int ty) {
   float blockTop = ty*TILE;
   float blockBottom = blockTop + TILE;
 
-  float pLeft   = px - halfW;
-  float pRight  = px + halfW;
-  float pTop    = py - halfH;
+  float pLeft = px - halfW;
+  float pRight = px + halfW;
+  float pTop = py - halfH;
   float pBottom = py + halfH;
 
   boolean overlap = !(pRight <= blockLeft || pLeft >= blockRight || pBottom <= blockTop || pTop >= blockBottom);
