@@ -427,15 +427,15 @@ void updatePlayer() {
 
   float newPx = px + vx;
 
-  float left   = newPx - halfW + skin;
-  float right  = newPx + halfW - skin;
-  float top    = py - halfH + skin;
+  float left = newPx - halfW + skin;
+  float right = newPx + halfW - skin;
+  float top = py - halfH + skin;
   float bottom = py + halfH - skin;
 
-  int tileTop    = floor(top / TILE);
+  int tileTop = floor(top / TILE);
   int tileBottom = floor(bottom / TILE);
-  int tileLeft   = floor(left / TILE);
-  int tileRight  = floor(right / TILE);
+  int tileLeft = floor(left / TILE);
+  int tileRight = floor(right / TILE);
 
   if (vx > 0) {
     for (int ty = tileTop; ty <= tileBottom; ty++) {
