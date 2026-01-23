@@ -39,6 +39,8 @@ I planned to make water and lava make cobblestone but I ran out of time.
 
 I originally made items clip up if they are stuck inside a block just like in minecraft but I removed it in the Item Function because it looked off.
 
+I added water currant flow but didnt have time to add lava flow (items and player in water would get pushed around and float)
+
 
 ANSWERS TO QUESTIONS:
 
