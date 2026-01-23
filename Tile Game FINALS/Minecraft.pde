@@ -142,8 +142,8 @@ final float CHEST_SLOT_OFFSET_Y = -130;
 final int WATER_START_Y = 45;   // below surface
 final int LAVA_START_Y = 85;   // deep underground
 
-final float WATER_CAVE_CHANCE = 0.015;
-final float LAVA_CAVE_CHANCE = 0.02;
+final float WATER_CAVE_CHANCE = 0.15;
+final float LAVA_CAVE_CHANCE = 0.2;
 
 
 
@@ -727,25 +727,48 @@ void snapPlayerToGround() {
 }
 
 boolean isSolidTile(int tileX, int tileY) {
-  if (tileX < 0 || tileX >= CHUNK_W || tileY < 0 || tileY >= CHUNK_H) {
-    return false;
-  }
-  int id = currentTiles[tileX][tileY];
-  
-  return (id == GRASS ||
-          id == DIRT ||
-          id == STONE ||
-          id == COBBLESTONE ||
-          id == BEDROCK ||
-          id == COAL_ORE ||
-          id == IRON_ORE ||
-          id == GOLD_ORE ||
-          id == DIAMOND_ORE ||
-          id == PLANKS ||
-          id == CRAFTING_TABLE ||
-          id == CHEST);
+  if (currentTiles == null) return true;
 
+  if (tileX < 0 || tileX >= CHUNK_W || tileY < 0 || tileY >= CHUNK_H) {
+    return true;
+  }
+
+  int id = currentTiles[tileX][tileY];
+
+  return id == GRASS ||
+         id == DIRT ||
+         id == STONE ||
+         id == COBBLESTONE ||
+         id == BEDROCK ||
+         id == COAL_ORE ||
+         id == IRON_ORE ||
+         id == GOLD_ORE ||
+         id == DIAMOND_ORE ||
+         id == PLANKS ||
+         id == CRAFTING_TABLE ||
+         id == CHEST;
 }
+
+boolean isSolidTileIn(int[][] tiles, int x, int y) {
+  if (x < 0 || x >= CHUNK_W || y < 0 || y >= CHUNK_H) return true; // outside = solid
+  return isSolidId(tiles[x][y]);
+}
+
+boolean isSolidId(int id) {
+  return id == GRASS ||
+         id == DIRT ||
+         id == STONE ||
+         id == COBBLESTONE ||
+         id == BEDROCK ||
+         id == COAL_ORE ||
+         id == IRON_ORE ||
+         id == GOLD_ORE ||
+         id == DIAMOND_ORE ||
+         id == PLANKS ||
+         id == CRAFTING_TABLE ||
+         id == CHEST;
+}
+
 
 boolean isWaterTile(int tx, int ty) {
   if (tx < 0 || tx >= CHUNK_W || ty < 0 || ty >= CHUNK_H) return false;
@@ -1217,6 +1240,8 @@ int[][] loadChunk(int cx, int cy) {
 
   int[][] tiles = generateChunk(cx, cy);
   savedChunks.put(key, tiles);
+  savedWater.put(key, loadWaterChunk(cx, cy, tiles));
+  savedLava.put (key, loadLavaChunk (cx, cy, tiles));
   return tiles;
 }
 
@@ -1445,32 +1470,25 @@ int[][] generateChunk(int cx, int cy) {
   
       int worldY = cy * CHUNK_H + y;
   
-      // must be in a cave
       int solidNeighbors = 0;
-      if (tiles[x+1][y] == STONE) solidNeighbors++;
-      if (tiles[x-1][y] == STONE) solidNeighbors++;
-      if (tiles[x][y+1] == STONE) solidNeighbors++;
-      if (tiles[x][y-1] == STONE) solidNeighbors++;
+      if (isSolidTileIn(tiles, x+1, y)) solidNeighbors++;
+      if (isSolidTileIn(tiles, x-1, y)) solidNeighbors++;
+      if (isSolidTileIn(tiles, x, y+1)) solidNeighbors++;
+      if (isSolidTileIn(tiles, x, y-1)) solidNeighbors++;
   
-      if (solidNeighbors < 2) continue;
+      if (solidNeighbors < 1) continue;
   
       float n = noise(
         (x + WORLD_SEED * 91) * 0.18,
         (worldY + WORLD_SEED * 53) * 0.18
       );
   
-      // WATER (upper caves)
       if (worldY > WATER_START_Y && worldY < LAVA_START_Y) {
-        if (n > 1.0 - WATER_CAVE_CHANCE) {
-          tiles[x][y] = WATER;
-        }
+        if (n > 1.0 - WATER_CAVE_CHANCE) tiles[x][y] = WATER;
       }
   
-      // LAVA (deep caves)
       if (worldY >= LAVA_START_Y) {
-        if (n > 1.0 - LAVA_CAVE_CHANCE) {
-          tiles[x][y] = LAVA;
-        }
+        if (n > 1.0 - LAVA_CAVE_CHANCE) tiles[x][y] = LAVA;
       }
     }
   }
@@ -2503,19 +2521,28 @@ void updateWaterFlow() {
 
       int best = 0;
 
-      if (y > 0 && currentTiles[x][y - 1] == WATER) {
+      if (y > 0 &&
+          currentTiles[x][y - 1] == WATER &&
+          currentWater[x][y - 1] >= 8) {
         best = 8;
-      } else {
+      }
+      else {
         if (x > 0 && currentTiles[x - 1][y] == WATER)
           best = max(best, int(old[x - 1][y]) - 1);
         if (x < CHUNK_W - 1 && currentTiles[x + 1][y] == WATER)
           best = max(best, int(old[x + 1][y]) - 1);
       }
 
-      if (currentWater[x][y] != best) {
-        currentWater[x][y] = best;
-        changed = true;
+      if (best > 0) {
+        if (currentTiles[x][y] != WATER) {
+          currentTiles[x][y] = WATER;
+        }
+        if (currentWater[x][y] != best) {
+          currentWater[x][y] = best;
+          changed = true;
+        }
       }
+
 
       if (currentWater[x][y] == 0 && currentTiles[x][y] == WATER) {
         currentTiles[x][y] = AIR;
@@ -2822,7 +2849,7 @@ void updateLavaFlow() {
       if (y < CHUNK_H - 1 && isReplaceableBlock(currentTiles[x][y + 1])) {
         currentTiles[x][y + 1] = LAVA;
         currentLava[x][y + 1] = 8;
-        changed = true;   // ✅ ADD
+        changed = true;
         continue;
       }
 
@@ -2858,11 +2885,19 @@ void saveWorld() {
 
   for (String key : savedChunks.keySet()) {
     JSONObject chunkObj = new JSONObject();
-
-    chunkObj.setJSONArray("tiles", int2DToJSON(savedChunks.get(key)));
-    chunkObj.setJSONArray("water", float2DToJSON(savedWater.get(key)));
-    chunkObj.setJSONArray("lava",  float2DToJSON(savedLava.get(key)));
-
+  
+    int[][] tiles = savedChunks.get(key);
+    float[][] water = savedWater.get(key);
+    float[][] lava  = savedLava.get(key);
+  
+    // guarantee arrays exist
+    if (water == null) water = new float[CHUNK_W][CHUNK_H];
+    if (lava  == null) lava  = new float[CHUNK_W][CHUNK_H];
+  
+    chunkObj.setJSONArray("tiles", int2DToJSON(tiles));
+    chunkObj.setJSONArray("water", float2DToJSON(water));
+    chunkObj.setJSONArray("lava",  float2DToJSON(lava));
+  
     chunks.setJSONObject(key, chunkObj);
   }
 
@@ -2987,4 +3022,10 @@ float[][] jsonToFloat2D(JSONArray arr) {
     }
   }
   return out;
+}
+
+boolean isWaterReplaceable(int id) {
+  return id == AIR ||
+         id == GRASS_LEAVES ||
+         id == BUSH;
 }
