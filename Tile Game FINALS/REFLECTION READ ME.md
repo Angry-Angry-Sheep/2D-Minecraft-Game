@@ -1,6 +1,4 @@
 # 2D-Minecraft-Game
-DISCLAIMER: Turns out the water script broke while implimenting a new feature today so assume the water flows like lava
-
 FEATURES: 
 17 Blocks, 2 Liquids
 Chest can store items and if broken they will drop their items
@@ -13,7 +11,7 @@ There is infinite terrain in BOTH the horizontal and vertical direction. If you 
 
 There is one structure which is the tree
 
-There is an lighting system
+There is an lighting system and glowing blocks (Cobblestone and lava)
 
 There is a cave system, and lava and water SHOULD generate in caves
 
@@ -31,11 +29,15 @@ There is an inventory GUI, press "e" to open it. You can drag items around in th
 
 UNFINISHED FEATURES:
 
-I tried to add a save and load world feature. I have experience doing this in Unity C# for my games. Saving works but loading dosent work and I am out of time so I cant fix it. I tried to ask someone else to help me but that got didnt solve the issue
+I tried to add a save and load world feature. I have experience doing this in Unity C# for my games. Saving works but loading dosent work and I am out of time so I cant fix it. I tried to ask someone else to help me but that got didnt solve the issue.
 
 The lighting system is bugged at the edges of each chunk (blocks appear too dark)
 
 I planned to add a crafting system as seen with the crafting table GUI and block but I ran out of time.
+
+I planned to make water and lava make cobblestone but I ran out of time.
+
+I originally made items clip up if they are stuck inside a block just like in minecraft but I removed it in the Item Function because it looked off.
 
 
 ANSWERS TO QUESTIONS:
@@ -47,4 +49,4 @@ I overcomed the lighting system challenge by just spending more time on it and c
 
 I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system,
 
-I am most proud of the infinte terrain generation, espciacally at how smooth it is in which the player can just jump from one chunk to another and the terrain would carry on.
+I am most proud of the infinte terrain generation, espciacally at how smooth it is in which the player can just jump from one chunk to another and the terrain would carry on smoothly.
