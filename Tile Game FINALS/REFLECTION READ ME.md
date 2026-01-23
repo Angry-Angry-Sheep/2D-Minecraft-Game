@@ -1,4 +1,6 @@
 # 2D-Minecraft-Game
+DISCLAIMER: Turns out the water script broke while implimenting a new feature today so assume the water flows like lava
+
 FEATURES: 
 17 Blocks, 2 Liquids
 Chest can store items and if broken they will drop their items
