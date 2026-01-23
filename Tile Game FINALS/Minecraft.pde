@@ -58,7 +58,6 @@ HashMap<String, int[][]> savedChunks = new HashMap<String, int[][]>();
 HashMap<String, float[][]> savedWater = new HashMap<String, float[][]>();
 HashMap<String, float[][]> savedLava = new HashMap<String, float[][]>();
 
-
 float[][] currentWater;  // replace using waterLevel which was the old 2d array for water which can handle only one chunk
 float[][] currentLava; // lava version
 
@@ -81,7 +80,6 @@ PImage chestTex;
 
 PImage chestGuiTex;
 PImage craftingGuiTex;
-
 
 float px = TILE * 4;
 float py = TILE * 8;
@@ -125,7 +123,7 @@ final int SLOT_SIZE = 80;
 boolean inventoryOpen = false;
 
 final int INV_COLS = 9;
-final int INV_ROWS = 3; // 3 inventory
+final int INV_ROWS = 3; // 3 inventory rows
 
 int[][] inventory = new int[INV_ROWS][INV_COLS];
 PImage inventoryTex;
@@ -140,13 +138,11 @@ final float INV_SLOT_OFFSET_Y = 150;
 final float CHEST_SLOT_OFFSET_X = 0;
 final float CHEST_SLOT_OFFSET_Y = -130;
 
-final int WATER_START_Y = 45;   // below surface
-final int LAVA_START_Y = 85;   // deep underground
+final int WATER_START_Y = 45;   // starts right below surface
+final int LAVA_START_Y = 85;   // starts deep underground
 
 final float WATER_CAVE_CHANCE = 0.15;
 final float LAVA_CAVE_CHANCE = 0.2;
-
-
 
 final int MAX_STACK = 64;
 
@@ -230,8 +226,6 @@ void setup() {
   currentTiles = loadChunk(currentChunkX, currentChunkY);
   currentWater = loadWaterChunk(currentChunkX, currentChunkY, currentTiles);
   currentLava = loadLavaChunk(currentChunkX, currentChunkY, currentTiles);
-
-
   
   hotbarTex = loadImage("gui_hotbar.png");
   slotTex = loadImage("gui_slot.png");
@@ -819,7 +813,6 @@ void computeLighting() {
     }
   }
 
-
   diffuseSkyLight(12);
 
   applyBlockLightsNatural();
@@ -1247,7 +1240,6 @@ int[][] loadChunk(int cx, int cy) {
 }
 
 int[][] generateChunk(int cx, int cy) {
-
   int[][] tiles = new int[CHUNK_W][CHUNK_H];
 
   float baseHeight = 55;
@@ -1269,8 +1261,8 @@ int[][] generateChunk(int cx, int cy) {
   for (int x = 0; x < CHUNK_W; x++) {
     int worldX = cx * CHUNK_W + x;
 
-    float big  = noise((worldX + WORLD_SEED) * nBig);
-    float med  = noise((worldX + WORLD_SEED) * nMed);
+    float big = noise((worldX + WORLD_SEED) * nBig);
+    float med = noise((worldX + WORLD_SEED) * nMed);
     float small= noise((worldX + WORLD_SEED) * nSmall);
     
     float noiseVal = big * 0.55 + med * 0.30 + small * 0.15;
