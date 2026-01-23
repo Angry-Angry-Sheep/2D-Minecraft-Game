@@ -39,6 +39,7 @@ I planned to add a crafting system as seen with the crafting table GUI and block
 ANSWERS TO QUESTIONS:
 
 The hardest part of this project is implimenting the lighting system and working on this project while having finals and tests in other classes since its towards the end of the semester. The second hardest would be the water system in which the water should slope. The third hardest problem would be the terrain generation.
+The most annoying problem would be when there is a null pointer exception during runtime, especially in cases where a single change can trigger a domino effect in the code. Processing dosent display which line is causing the issue which is very annoying and I overcomed this by resorting to ai to tell me where it is.
 
 I overcomed the lighting system challenge by just spending more time on it and checking how other people made their own 2d lighting system. I overcomed the water texture problem by removing the water texture all together and made water be drawn in-game and the verticies manually drawn for the slope effect (flowing water). I overcomed the terrain generation by making it use perlin noise instead of a combanation of sin and cos to generate the general terrain shape.
 
