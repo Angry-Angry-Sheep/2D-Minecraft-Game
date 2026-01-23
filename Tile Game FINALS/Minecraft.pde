@@ -139,6 +139,13 @@ final float INV_SLOT_OFFSET_Y = 150;
 final float CHEST_SLOT_OFFSET_X = 0;
 final float CHEST_SLOT_OFFSET_Y = -130;
 
+final int WATER_START_Y = 45;   // below surface
+final int LAVA_START_Y = 85;   // deep underground
+
+final float WATER_CAVE_CHANCE = 0.015;
+final float LAVA_CAVE_CHANCE = 0.02;
+
+
 
 final int MAX_STACK = 64;
 
@@ -1429,6 +1436,45 @@ int[][] generateChunk(int cx, int cy) {
       }
     }
   }
+  
+  // 3.75 CAVE LIQUIDS (WATER & LAVA)
+  for (int x = 2; x < CHUNK_W - 2; x++) {
+    for (int y = 2; y < CHUNK_H - 2; y++) {
+  
+      if (tiles[x][y] != AIR) continue;
+  
+      int worldY = cy * CHUNK_H + y;
+  
+      // must be in a cave
+      int solidNeighbors = 0;
+      if (tiles[x+1][y] == STONE) solidNeighbors++;
+      if (tiles[x-1][y] == STONE) solidNeighbors++;
+      if (tiles[x][y+1] == STONE) solidNeighbors++;
+      if (tiles[x][y-1] == STONE) solidNeighbors++;
+  
+      if (solidNeighbors < 2) continue;
+  
+      float n = noise(
+        (x + WORLD_SEED * 91) * 0.18,
+        (worldY + WORLD_SEED * 53) * 0.18
+      );
+  
+      // WATER (upper caves)
+      if (worldY > WATER_START_Y && worldY < LAVA_START_Y) {
+        if (n > 1.0 - WATER_CAVE_CHANCE) {
+          tiles[x][y] = WATER;
+        }
+      }
+  
+      // LAVA (deep caves)
+      if (worldY >= LAVA_START_Y) {
+        if (n > 1.0 - LAVA_CAVE_CHANCE) {
+          tiles[x][y] = LAVA;
+        }
+      }
+    }
+  }
+
   
   //SSSD
 
