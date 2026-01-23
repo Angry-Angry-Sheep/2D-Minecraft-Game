@@ -7,7 +7,7 @@ Items are dropped when blocks are broken and float in water (I did not have time
 
 There is randomly generating terrain in which manipulating the world seed would yeild different terrain types
 
-There is infinite terrain in BOTH the horizontal and vertical direction. If you go left or right enough you can see a "wall" and pass through it. The same goes for up and down.
+There is infinite terrain in BOTH the horizontal and vertical direction. If you go left or right enough you can see a "wall" and pass through it. The same goes for up and down. However, there is a hard limit for going below bedrock.
 
 There is one structure which is the tree
 
@@ -25,15 +25,16 @@ Pressing '0' allows the player to enter "creative mode"
 
 Pressing "@S" saves a .json file of your world inside of the "worlds" folder, though I havent added a load feature yet
 
-There is an inventory GUI, press "e" to open it
+There is an inventory GUI, press "e" to open it. You can drag items around in the inventory
 
 UNFINISHED FEATURES:
 
-I tried to add a save and load world feature. Saving works but loading dosent work and I am out of time so I cant fix it
+I tried to add a save and load world feature. I have experience doing this in Unity C# for my games. Saving works but loading dosent work and I am out of time so I cant fix it. I tried to ask someone else to help me but that got didnt solve the issue
 
 The lighting system is bugged at the edges of each chunk (blocks appear too dark)
 
-I planned to add a crafting system as seen with the crafting table GUI and block but I ran out of time
+I planned to add a crafting system as seen with the crafting table GUI and block but I ran out of time.
+
 
 ANSWERS TO QUESTIONS:
 
@@ -41,8 +42,6 @@ The hardest part of this project is implimenting the lighting system and working
 
 I overcomed the lighting system challenge by just spending more time on it and checking how other people made their own 2d lighting system. I overcomed the water texture problem by removing the water texture all together and made water be drawn in-game and the verticies manually drawn for the slope effect (flowing water). I overcomed the terrain generation by making it use perlin noise instead of a combanation of sin and cos to generate the general terrain shape.
 
-I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system
+I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system,
 
 I am most proud of the infinte terrain generation, espciacally at how smooth it is in which the player can just jump from one chunk to another and the terrain would carry on.
-///////////////////////
-I will finish the rest of this since my parents suprized me with an unannoced 2 hour physcis class
