@@ -17,6 +17,14 @@ There is a cave system, and lava and water SHOULD generate in caves
 
 There is ore generation (different ores generate at different y levels)
 
+Collision is made without any external libary like fisica
+
+All textures except for crafting table, leaves, grass leaves, and gui, are made by hand
+
+Pressing '0' allows the player to enter "creative mode"
+
+Pressing "@S" saves a .json file of your world inside of the "worlds" folder, though I havent added a load feature yet
+
 UNFINISHED FEATURES:
 
 I tried to add a save and load world feature. Saving works but loading dosent work and I am out of time so I cant fix it
@@ -30,5 +38,5 @@ ANSWERS TO QUESTIONS:
 The hardest part of this project is implimenting the lighting system and working on this project while having finals and tests in other classes since its towards the end of the semester. The second hardest would be
 
 I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system
-
+///////////////////////
 I will finish the rest of this since my parents suprized me with an unannoced 2 hour physcis class
