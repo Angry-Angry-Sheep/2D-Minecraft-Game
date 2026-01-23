@@ -47,6 +47,8 @@ The most annoying problem would be when there is a null pointer exception during
 
 I overcomed the lighting system challenge by just spending more time on it and checking how other people made their own 2d lighting system. I overcomed the water texture problem by removing the water texture all together and made water be drawn in-game and the verticies manually drawn for the slope effect (flowing water). I overcomed the terrain generation by making it use perlin noise instead of a combanation of sin and cos to generate the general terrain shape.
 
-I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system,
+I learned the most at HashMaps<> since before, I never used them. In the game, they are vital to the 2d infinite chunk system. Previously, I would mostly use 2d arrays instead.
 
 I am most proud of the infinte terrain generation, espciacally at how smooth it is in which the player can just jump from one chunk to another and the terrain would carry on smoothly.
+
+I think full marks is acceptable for this project since it includes advanced features like infinite procedural terrain, lighting, fluid systems, and custom collision without an external engine throughout the development process.
