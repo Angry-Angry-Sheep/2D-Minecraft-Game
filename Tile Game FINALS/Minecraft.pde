@@ -7,6 +7,7 @@ final String WORLD_FOLDER = "worlds";
 // Chunks randomly generate in all 4 directions
 // press "e" to open inventory
 // press "0" to enable flight and no clip mode
+// cobblestone is glowing
 
 int WORLD_SEED = 67;
 //69 OLD SEED
@@ -2499,73 +2500,33 @@ void updateWaterFlow() {
   }
 
   for (int x = 0; x < CHUNK_W; x++) {
-    for (int y = 0; y < CHUNK_H; y++) {
-
-      if (currentTiles[x][y] != WATER) {
-        if (currentWater[x][y] != 0) {
-          currentWater[x][y] = 0;
-          changed = true;
-        }
-        continue;
-      }
-
-      int lvl = int(old[x][y]);
-
-      if (lvl >= 8) {
-        if (currentWater[x][y] != 8) {
-          currentWater[x][y] = 8;
-          changed = true;
-        }
-        continue;
-      }
-
-      int best = 0;
-
-      if (y > 0 &&
-          currentTiles[x][y - 1] == WATER &&
-          currentWater[x][y - 1] >= 8) {
-        best = 8;
-      }
-      else {
-        if (x > 0 && currentTiles[x - 1][y] == WATER)
-          best = max(best, int(old[x - 1][y]) - 1);
-        if (x < CHUNK_W - 1 && currentTiles[x + 1][y] == WATER)
-          best = max(best, int(old[x + 1][y]) - 1);
-      }
-
-      if (best > 0) {
-        if (currentTiles[x][y] != WATER) {
-          currentTiles[x][y] = WATER;
-        }
-        if (currentWater[x][y] != best) {
-          currentWater[x][y] = best;
-          changed = true;
-        }
-      }
-
-
-      if (currentWater[x][y] == 0 && currentTiles[x][y] == WATER) {
-        currentTiles[x][y] = AIR;
-        changed = true;
-      }
-    }
-  }
-
-  // vertical and sideways spreading
-  for (int x = 0; x < CHUNK_W; x++) {
-    for (int y = CHUNK_H - 2; y >= 0; y--) {
+    for (int y = CHUNK_H - 1; y >= 0; y--) {
 
       if (currentTiles[x][y] != WATER) continue;
 
-      boolean canFlowDown =
-        isReplaceableBlock(currentTiles[x][y + 1]) &&
-        !isPlatformTile(x, y + 1);
+      int level = int(old[x][y]);
+      if (level <= 0) continue;
 
-      if (canFlowDown) {
+      // SAME fall rule
+      if (y < CHUNK_H - 1 && isWaterReplaceable(currentTiles[x][y + 1])) {
         currentTiles[x][y + 1] = WATER;
         currentWater[x][y + 1] = 8;
         changed = true;
         continue;
+      }
+
+      int spread = level - 2;
+      if (spread <= 0) continue;
+
+      for (int dir = -1; dir <= 1; dir += 2) {
+        int nx = x + dir;
+        if (nx < 0 || nx >= CHUNK_W) continue;
+
+        if (isWaterReplaceable(currentTiles[nx][y])) {
+          currentTiles[nx][y] = WATER;
+          currentWater[nx][y] =
+            max(currentWater[nx][y], spread);
+        }
       }
     }
   }
@@ -3027,5 +2988,7 @@ float[][] jsonToFloat2D(JSONArray arr) {
 boolean isWaterReplaceable(int id) {
   return id == AIR ||
          id == GRASS_LEAVES ||
-         id == BUSH;
+         id == BUSH ||
+         id == WATER ||
+         id == LAVA;
 }
