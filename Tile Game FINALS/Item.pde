@@ -223,7 +223,7 @@ class ItemEntity {
     vy = 0;
   }
 }
-// reused function as player to check if it floats in water
+// reused function as player to check if it is in water
 boolean isPlayerInWater() {
   int cx = int(px / TILE);
   int cy = int(py / TILE);
