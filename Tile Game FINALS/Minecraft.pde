@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import java.util.Arrays;
 
+// The previous versions of this file are located in VERSIONS since if I upload a file, it will replace the file of the same name
 
 final String WORLD_FOLDER = "worlds";
 
@@ -11,7 +12,7 @@ final String WORLD_FOLDER = "worlds";
 
 int WORLD_SEED = 67;
 //69 OLD SEED
-// Change seed for different terrain
+// Change seed for different terrain generation
 
 final int TILE = 48;
 final int CHUNK_W = 160;
@@ -342,7 +343,6 @@ void renderHotbar() {
 }
 
 void keyPressed() {
-  
   if (key == '@') return;
 
   if (key == 'S' && keyEvent.isShiftDown()) {
@@ -355,6 +355,8 @@ void keyPressed() {
     return;
   }
   // ^^^ this dosen't work
+  // this is unused since I didn't have time to finish
+  // "@S" works but the saved world .json file in "worlds" folder cannot be loaded
 
   
   if (key == '0') {
@@ -382,6 +384,7 @@ void keyPressed() {
     return;
   }
 
+  // Throws item
   if (key == 'q' || key == 'Q') {
     int slot = selectedSlot;
     if (hotbar[slot] != AIR && hotbarCount[slot] > 0) {
@@ -1501,6 +1504,8 @@ int[][] generateChunk(int cx, int cy) {
       float nIron = noise(x * 0.12 + WORLD_SEED*27, worldY * 0.12 + WORLD_SEED*33);
       float nGold = noise(x * 0.12 + WORLD_SEED*57, worldY * 0.12 + WORLD_SEED*63);
       float nDiamond = noise(x * 0.12 + WORLD_SEED*87, worldY * 0.12 + WORLD_SEED*93);
+
+      // For (n + ore), higher value = higher spawn rate
       
       //COAL
       if (worldY < baseHeight + 25 && nCoal > 0.45) {
