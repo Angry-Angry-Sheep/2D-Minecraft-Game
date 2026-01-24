@@ -2,6 +2,7 @@ import java.util.HashMap;
 import java.util.Arrays;
 
 // The previous versions of this file are located in VERSIONS since if I upload a file, it will replace the file of the same name
+// Item and Chestentity.pde are not in there since they are relatively simple and were made in 1-2 days
 
 final String WORLD_FOLDER = "worlds";
 
