@@ -50,11 +50,11 @@ class ItemEntity {
     }
 
     float nextX = x + vx;
-  
-    int leftTile  = int((nextX - ITEM_HALF) / TILE);
+    // collision
+    int leftTile = int((nextX - ITEM_HALF) / TILE);
     int rightTile = int((nextX + ITEM_HALF) / TILE);
-    int topTile   = int((y - ITEM_HALF + 1) / TILE);
-    int botTile   = int((y + ITEM_HALF - 1) / TILE);
+    int topTile = int((y - ITEM_HALF + 1) / TILE);
+    int botTile = int((y + ITEM_HALF - 1) / TILE);
   
     boolean hitWall = false;
   
@@ -137,7 +137,7 @@ class ItemEntity {
     }
   
     image(tex, x, y, 24, 24);
-  
+    // when in dark places, item will be darker
     int darkness = 255 - L;
     darkness = constrain(darkness, 0, 180);
   
@@ -158,9 +158,9 @@ class ItemEntity {
     
   void resolveInsideSolid() {
     if (true) return;
-    int left   = int((x - ITEM_HALF) / TILE);
-    int right  = int((x + ITEM_HALF) / TILE);
-    int top    = int((y - ITEM_HALF) / TILE);
+    int left = int((x - ITEM_HALF) / TILE);
+    int right = int((x + ITEM_HALF) / TILE);
+    int top = int((y - ITEM_HALF) / TILE);
     int bottom = int((y + ITEM_HALF) / TILE);
   
     // bounds check
@@ -178,9 +178,9 @@ class ItemEntity {
   
         if (top < 0 || bottom >= CHUNK_H) break;
   
-        if (isSolidTile(left,  top) &&
+        if (isSolidTile(left, top) &&
             isSolidTile(right, top) &&
-            isSolidTile(left,  bottom) &&
+            isSolidTile(left, bottom) &&
             isSolidTile(right, bottom)) {
   
           y -= 1;
@@ -222,7 +222,7 @@ class ItemEntity {
     vy = 0;
   }
 }
-
+// reused function as player to check if it floats in water
 boolean isPlayerInWater() {
   int cx = int(px / TILE);
   int cy = int(py / TILE);
