@@ -157,6 +157,7 @@ class ItemEntity {
   }
     
   void resolveInsideSolid() {
+    // this is disabled, this is suppost to make items rapidly go up when they are inside a solid block but it looked too weird
     if (true) return;
     int left = int((x - ITEM_HALF) / TILE);
     int right = int((x + ITEM_HALF) / TILE);
