@@ -3,9 +3,11 @@ FEATURES:
 17 Blocks, 2 Liquids
 Chest can store items and if broken they will drop their items
 
-Items are dropped when blocks are broken and float in water (I did not have time to add floating compatibility with lava)
+Items are dropped when blocks are broken and float in water 
 
-There is randomly generating terrain in which manipulating the world seed would yeild different terrain types
+Items can flow and float in water (I did not have time to add floating compatibility with lava)
+
+There is randomly generating terrain in which manipulating the world seed would yeild different terrain types (also vegetation)
 
 There is infinite terrain in BOTH the horizontal and vertical direction. If you go left or right enough you can see a "wall" and pass through it. The same goes for up and down. However, there is a hard limit for going below bedrock.
 
