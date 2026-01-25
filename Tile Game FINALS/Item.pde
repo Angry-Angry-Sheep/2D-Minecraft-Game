@@ -36,7 +36,6 @@ class ItemEntity {
         inWater = true;
       }
     }
-
   
     // gravity
     if (inWater) {
@@ -193,7 +192,6 @@ class ItemEntity {
       }
     }
   }
-
 
   void resolveGroundSnap() {
     int tx = int(x / TILE);
