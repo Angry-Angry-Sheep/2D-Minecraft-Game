@@ -142,11 +142,11 @@ final float INV_SLOT_OFFSET_Y = 150;
 final float CHEST_SLOT_OFFSET_X = 0;
 final float CHEST_SLOT_OFFSET_Y = -130;
 
-final int WATER_START_Y = 45;   // starts right below surface
-final int LAVA_START_Y = 85;   // starts deep underground
+final int WATER_START_Y = 85;   // starts right below surface
+final int LAVA_START_Y = 95;   // starts deep underground
 
-final float WATER_CAVE_CHANCE = 0.15;
-final float LAVA_CAVE_CHANCE = 0.2;
+final float WATER_CAVE_CHANCE= 0.4; 
+final float LAVA_CAVE_CHANCE = 0.3;
 
 final int MAX_STACK = 64;
 
@@ -234,6 +234,7 @@ void setup() {
   slotTex = loadImage("gui_slot.png");
   
   // Fill hotbar with first 9 block IDs
+  // Replace these with the blocks you want hotbar to be
   int[] defaultBlocks = {
     GRASS, DIRT, STONE, COBBLESTONE,
     LAVA, CHEST, CRAFTING_TABLE,
@@ -469,21 +470,39 @@ void updatePlayer() {
   
   if (creativeMode) {
     float flySpeed = 15;
-
+  
     vx = 0;
     vy = 0;
-
-    if (leftPressed)  vx -= flySpeed;
+  
+    if (leftPressed) vx -= flySpeed;
     if (rightPressed) vx += flySpeed;
-    if (upPressed)    vy -= flySpeed;
-    if (downPressed)  vy += flySpeed;
-
-    px += vx;
-    py += vy;
-
+    if (upPressed)   vy -= flySpeed;
+    if (downPressed)vy += flySpeed;
+  
+    float newPx = px + vx;
+    float newPy = py + vy;
+  
+    // Can't fly through bedrock to prevent gamebreaking bug
+    float bottom = newPy + halfH;
+    int tileY = int(bottom / TILE);
+  
+    int tileLeft = int((newPx - halfW + 2) / TILE);
+    int tileRight = int((newPx + halfW - 2) / TILE);
+  
+    for (int tx = tileLeft; tx <= tileRight; tx++) {
+      if (isBedrockTile(tx, tileY)) {
+        newPy = tileY * TILE - halfH;
+        break;
+      }
+    }
+  
+    px = newPx;
+    py = newPy;
+  
     handleChunkChange();
     return;
   }
+
   if (inventoryOpen) {
     vx = 0;
     return;
@@ -2987,4 +3006,9 @@ boolean isWaterReplaceable(int id) {
          id == BUSH ||
          id == WATER ||
          id == LAVA;
+}
+
+boolean isBedrockTile(int tx, int ty) {
+  if (tx < 0 || tx >= CHUNK_W || ty < 0 || ty >= CHUNK_H) return false;
+  return currentTiles[tx][ty] == BEDROCK;
 }
