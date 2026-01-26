@@ -4,6 +4,8 @@ import java.util.Arrays;
 // The previous versions of this file are located in VERSIONS since if I upload a file, it will replace the file of the same name
 // Item and Chestentity.pde are not in there since they are relatively simple and were made in 1-2 days
 
+// Liquids don't seem to generate right now since their spawn conditions are very harsh
+
 final String WORLD_FOLDER = "worlds";
 
 // Chunks randomly generate in all 4 directions
@@ -166,7 +168,6 @@ boolean inventorySlotsOnly = false;
 
 boolean creativeMode = false;
 
-
 void setup() {
   File worldDir = new File(dataPath(WORLD_FOLDER));
   if (!worldDir.exists()) {
@@ -242,8 +243,7 @@ void setup() {
   for (int i = 0; i < HOTBAR_SLOTS; i++) {
     hotbar[i] = defaultBlocks[i];
   }
- 
-  
+
   // Fill rest with AIR
   for (int y = 0; y < INV_ROWS - 1; y++) {
     for (int x = 0; x < INV_COLS; x++) {
@@ -270,7 +270,6 @@ void draw() {
   updateBlockSystem();
   updateWaterFlow();
   updateLavaFlow();
-
 
   pushMatrix();
   applyCamera();
@@ -1249,8 +1248,8 @@ int[][] generateChunk(int cx, int cy) {
   float baseHeight = 55;
   float hillAmp = 200;
 
-  float nBig   = 0.0015;
-  float nMed   = 0.01;
+  float nBig = 0.0015;
+  float nMed = 0.01;
   float nSmall = 0.04;
 
   float dirtBase = 3.5;
@@ -1571,7 +1570,6 @@ int[][] generateChunk(int cx, int cy) {
 
   return tiles;
 }
-
 
 // BLOCK INTERACTION SYSTEM
 
@@ -2077,9 +2075,9 @@ boolean isInsidePlayer(int tx, int ty) {
   float blockTop = ty*TILE;
   float blockBottom = blockTop + TILE;
 
-  float pLeft   = px - halfW;
-  float pRight  = px + halfW;
-  float pTop    = py - halfH;
+  float pLeft = px - halfW;
+  float pRight = px + halfW;
+  float pTop = py - halfH;
   float pBottom = py + halfH;
 
   boolean overlap = !(pRight <= blockLeft || pLeft >= blockRight || pBottom <= blockTop || pTop >= blockBottom);
@@ -2851,7 +2849,7 @@ void saveWorld() {
   
     // guarantee arrays exist
     if (water == null) water = new float[CHUNK_W][CHUNK_H];
-    if (lava  == null) lava  = new float[CHUNK_W][CHUNK_H];
+    if (lava  == null) lava = new float[CHUNK_W][CHUNK_H];
   
     chunkObj.setJSONArray("tiles", int2DToJSON(tiles));
     chunkObj.setJSONArray("water", float2DToJSON(water));
