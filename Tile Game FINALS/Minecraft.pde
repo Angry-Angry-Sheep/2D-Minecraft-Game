@@ -145,7 +145,7 @@ final float CHEST_SLOT_OFFSET_Y = -130;
 final int WATER_START_Y = 85;   // starts right below surface
 final int LAVA_START_Y = 95;   // starts deep underground
 
-final float WATER_CAVE_CHANCE= 0.4; 
+final float WATER_CAVE_CHANCE= 0.4; // I only checked for water y instead of the terrain so water can gerate at low altitude surfaces
 final float LAVA_CAVE_CHANCE = 0.3;
 
 final int MAX_STACK = 64;
